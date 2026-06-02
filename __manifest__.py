@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'POS Cashier Only',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'summary': 'Crea usuarios cajeros que solo pueden acceder al TPV.',
     'description': """
         Este módulo permite crear usuarios con rol de cajero que:

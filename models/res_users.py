@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
 
@@ -48,9 +47,6 @@ class ResUsers(models.Model):
                 user.pos_config_ids = self.env['pos.config']
                 continue
             configs = self.env['pos.config'].sudo().search([
-                '|', '|',
-                ('basic_employee_ids', 'in', employee.id),
-                ('minimal_employee_ids', 'in', employee.id),
                 ('advanced_employee_ids', 'in', employee.id),
             ])
             user.pos_config_ids = configs
@@ -68,18 +64,9 @@ class ResUsers(models.Model):
                             'advanced_employee_ids': [(4, employee.id)],
                         })
                 else:
-                    if employee in config.advanced_employee_ids:
-                        config.sudo().write({
-                            'advanced_employee_ids': [(3, employee.id)],
-                        })
-                    if employee in config.basic_employee_ids:
-                        config.sudo().write({
-                            'basic_employee_ids': [(3, employee.id)],
-                        })
-                    if employee in config.minimal_employee_ids:
-                        config.sudo().write({
-                            'minimal_employee_ids': [(3, employee.id)],
-                        })
+                    for field_name in ['advanced_employee_ids', 'basic_employee_ids', 'minimal_employee_ids']:
+                        if employee in config[field_name]:
+                            config.sudo().write({field_name: [(3, employee.id)]})
 
     def _search_is_cashier_only(self, operator, value):
         cashier_group = self.env.ref(
@@ -108,8 +95,8 @@ class ResUsers(models.Model):
         for user in self:
             if cashier_group not in user.group_ids:
                 user.write({'group_ids': [(4, cashier_group.id)]})
-                if not user.employee_id:
-                    user._create_employee_for_cashier()
+            if not user.employee_id:
+                user._create_employee_for_cashier()
         self._update_cashier_home_action()
         return {
             'type': 'ir.actions.client',
@@ -119,7 +106,7 @@ class ResUsers(models.Model):
                 'message': f'{len(self)} usuario(s) ahora son cajeros TPV',
                 'type': 'success',
                 'sticky': False,
-                'next': {'type': 'ir.actions.client', 'tag': 'reload'},
+                'next': {'tag': 'reload'},
             }
         }
 
@@ -142,18 +129,19 @@ class ResUsers(models.Model):
                 'message': f'{len(self)} usuario(s) ya no son cajeros TPV',
                 'type': 'info',
                 'sticky': False,
-                'next': {'type': 'ir.actions.client', 'tag': 'reload'},
+                'next': {'tag': 'reload'},
             }
         }
 
     def _create_employee_for_cashier(self):
         self.ensure_one()
         if self.employee_id:
-            return
+            return self.employee_id
         employee = self.env['hr.employee'].sudo().create({
             'name': self.name,
             'user_id': self.id,
             'company_id': self.env.company.id,
+            'pin': self.login[-4:] if len(self.login) >= 4 else '0000',
         })
         return employee
 
@@ -167,16 +155,31 @@ class ResUsers(models.Model):
             )
             if cashier_group:
                 group_ids = defaults.get('group_ids', [])
-                if (4, cashier_group.id) not in group_ids:
+                if (4, cashier_group.id) not in group_ids and cashier_group.id not in group_ids:
                     group_ids.append((4, cashier_group.id))
                 defaults['group_ids'] = group_ids
         return defaults
 
     @api.model_create_multi
     def create(self, vals_list):
+        cashier_group = self.env.ref(
+            'pos_cashier_only.group_pos_cashier_only',
+            raise_if_not_found=False,
+        )
+        for vals in vals_list:
+            if self.env.context.get('default_is_cashier_only') and cashier_group:
+                group_ids = vals.get('group_ids', [])
+                if isinstance(group_ids, list):
+                    already_set = (
+                        cashier_group.id in group_ids or
+                        (4, cashier_group.id) in group_ids
+                    )
+                    if not already_set:
+                        group_ids.append((4, cashier_group.id))
+                vals['group_ids'] = group_ids
         users = super().create(vals_list)
         for user in users:
-            if user.is_cashier_only and not user.employee_id:
+            if cashier_group and cashier_group in user.group_ids and not user.employee_id:
                 user._create_employee_for_cashier()
         users._update_cashier_home_action()
         return users
@@ -192,12 +195,11 @@ class ResUsers(models.Model):
             if user.is_cashier_only:
                 sessions = self.env['pos.session'].sudo().search([
                     ('user_id', '=', user.id),
-                    ('state', '!=', 'closed'),
                 ])
                 if sessions:
                     raise UserError(_(
-                        'No se puede eliminar el usuario "%s" porque tiene sesiones de TPV abiertas. '
-                        'Cierre las sesiones primero o archive el usuario.',
+                        'No se puede eliminar el usuario "%s" porque tiene sesiones de TPV '
+                        'asociadas. Archive el usuario en su lugar.',
                         user.name,
                     ))
         return super().unlink()
@@ -221,23 +223,3 @@ class ResUsers(models.Model):
                 super(ResUsers, user).write({'action_id': server_action.id})
             elif not is_cashier and user.action_id == server_action:
                 super(ResUsers, user).write({'action_id': False})
-
-    def _get_default_pos_config(self):
-        return self.env['pos.config'].search(
-            [('active', '=', True)], limit=1, order='id asc',
-        )
-
-    def action_open_pos_cashier(self):
-        self.ensure_one()
-        pos_config = self._get_default_pos_config()
-        if not pos_config:
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Sin TPV configurado',
-                    'message': 'No hay ningún punto de venta activo.',
-                    'type': 'warning',
-                },
-            }
-        return pos_config.open_ui()
