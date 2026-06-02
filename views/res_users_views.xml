@@ -58,14 +58,18 @@ action = {
                             <field name="phone" string="Teléfono"/>
                         </group>
                     </group>
-                    <group string="Asignación a TPVs" invisible="not is_cashier_only">
-                        <p class="text-muted">
+                    <group string="Asignación a TPVs" invisible="not is_cashier_only"
+                           col="4">
+                        <p class="text-muted" colspan="4">
                             Selecciona los TPVs donde este cajero puede trabajar.
                             El empleado se agregará con derechos avanzados en cada TPV seleccionado
                             (podrá cerrar sesión y realizar todas las operaciones).
                         </p>
-                        <field name="pos_config_ids" widget="many2many_tags" 
-                               options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                    <group invisible="not is_cashier_only" col="4">
+                        <field name="pos_config_ids" widget="many2many_tags" colspan="4" nolabel="1"
+                               options="{'no_create': True, 'no_open': True}"
+                               style="border: 1px solid #dee2e6; border-radius: 4px; padding: 8px; min-height: 36px; background: #fff;"/>
                     </group>
                     <div class="alert alert-info mt-3" role="alert" invisible="not is_cashier_only">
                         <strong>Nota:</strong> Este usuario solo podrá acceder al TPV.

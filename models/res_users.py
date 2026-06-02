@@ -1,6 +1,10 @@
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
 
+GROUP_USER_XMLID = 'base.group_user'
+GROUP_PORTAL_XMLID = 'base.group_portal'
+CASHIER_GROUP_XMLID = 'pos_cashier_only.group_pos_cashier_only'
+
 
 class ResUsers(models.Model):
     _inherit = 'res.users'
@@ -24,11 +28,17 @@ class ResUsers(models.Model):
         store=False,
     )
 
+    def _get_cashier_group(self):
+        return self.env.ref(CASHIER_GROUP_XMLID, raise_if_not_found=False)
+
+    def _get_user_group(self):
+        return self.env.ref(GROUP_USER_XMLID, raise_if_not_found=False)
+
+    def _get_portal_group(self):
+        return self.env.ref(GROUP_PORTAL_XMLID, raise_if_not_found=False)
+
     def _compute_is_cashier_only(self):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
         if not cashier_group:
             for user in self:
                 user.is_cashier_only = False
@@ -69,10 +79,7 @@ class ResUsers(models.Model):
                             config.sudo().write({field_name: [(3, employee.id)]})
 
     def _search_is_cashier_only(self, operator, value):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
         if not cashier_group:
             return [('id', '=', False)]
         self.env.cr.execute(
@@ -85,14 +92,25 @@ class ResUsers(models.Model):
         else:
             return [('id', 'not in', cashier_user_ids)]
 
+    def _ensure_internal_user(self, user):
+        user_group = self._get_user_group()
+        portal_group = self._get_portal_group()
+        if not user_group:
+            return
+        groups_to_add = []
+        if user_group not in user.group_ids:
+            groups_to_add.append((4, user_group.id))
+        if portal_group and portal_group in user.group_ids:
+            groups_to_add.append((3, portal_group.id))
+        if groups_to_add:
+            user.write({'group_ids': groups_to_add})
+
     def action_make_cashier(self):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
         if not cashier_group:
             return
         for user in self:
+            self._ensure_internal_user(user)
             if cashier_group not in user.group_ids:
                 user.write({'group_ids': [(4, cashier_group.id)]})
             if not user.employee_id:
@@ -111,10 +129,7 @@ class ResUsers(models.Model):
         }
 
     def action_remove_cashier(self):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
         if not cashier_group:
             return
         for user in self:
@@ -148,33 +163,34 @@ class ResUsers(models.Model):
     def default_get(self, fields_list):
         defaults = super().default_get(fields_list)
         if self.env.context.get('default_is_cashier_only'):
-            cashier_group = self.env.ref(
-                'pos_cashier_only.group_pos_cashier_only',
-                raise_if_not_found=False,
-            )
-            if cashier_group:
+            cashier_group = self._get_cashier_group()
+            user_group = self._get_user_group()
+            if cashier_group and user_group:
                 group_ids = defaults.get('group_ids', [])
-                if (4, cashier_group.id) not in group_ids and cashier_group.id not in group_ids:
-                    group_ids.append((4, cashier_group.id))
+                ids_to_add = [cashier_group.id, user_group.id]
+                for group_id in ids_to_add:
+                    if group_id not in group_ids and (4, group_id) not in group_ids:
+                        group_ids.append((4, group_id))
                 defaults['group_ids'] = group_ids
         return defaults
 
     @api.model_create_multi
     def create(self, vals_list):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
+        user_group = self._get_user_group()
+        portal_group = self._get_portal_group()
         for vals in vals_list:
             if self.env.context.get('default_is_cashier_only') and cashier_group:
                 group_ids = vals.get('group_ids', [])
                 if isinstance(group_ids, list):
-                    already_set = (
-                        cashier_group.id in group_ids or
-                        (4, cashier_group.id) in group_ids
-                    )
-                    if not already_set:
-                        group_ids.append((4, cashier_group.id))
+                    ids_to_add = [cashier_group.id]
+                    if user_group:
+                        ids_to_add.append(user_group.id)
+                    for group_id in ids_to_add:
+                        if group_id not in group_ids and (4, group_id) not in group_ids:
+                            group_ids.append((4, group_id))
+                    if portal_group and portal_group.id in group_ids:
+                        group_ids.remove(portal_group.id)
                 vals['group_ids'] = group_ids
         users = super().create(vals_list)
         for user in users:
@@ -191,23 +207,22 @@ class ResUsers(models.Model):
 
     def unlink(self):
         for user in self:
-            if user.is_cashier_only:
-                sessions = self.env['pos.session'].sudo().search([
-                    ('user_id', '=', user.id),
-                ])
-                if sessions:
-                    raise UserError(_(
-                        'No se puede eliminar el usuario "%s" porque tiene sesiones de TPV '
-                        'asociadas. Archive el usuario en su lugar.',
-                        user.name,
-                    ))
+            sessions = self.env['pos.session'].sudo().search([
+                ('user_id', '=', user.id),
+            ])
+            if sessions:
+                raise UserError(_(
+                    'No se puede eliminar el usuario "%s" porque tiene sesiones de TPV '
+                    'asociadas. Archive el usuario en su lugar.',
+                    user.name,
+                ))
+            employee = user.employee_id
+            if employee:
+                employee.sudo().write({'user_id': False})
         return super().unlink()
 
     def _update_cashier_home_action(self):
-        cashier_group = self.env.ref(
-            'pos_cashier_only.group_pos_cashier_only',
-            raise_if_not_found=False,
-        )
+        cashier_group = self._get_cashier_group()
         if not cashier_group:
             return
         server_action = self.env.ref(
