@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="pos_selector_template" name="POS Selector">
+        <html>
+            <head>
+                <title>Seleccionar TPV</title>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="stylesheet" href="/web/assets/web.assets_frontend.css"/>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .container {
+                        background: white;
+                        border-radius: 16px;
+                        padding: 40px;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        max-width: 800px;
+                        width: 100%;
+                    }
+                    h1 {
+                        color: #333;
+                        margin-bottom: 10px;
+                        font-size: 28px;
+                    }
+                    .subtitle {
+                        color: #666;
+                        margin-bottom: 30px;
+                        font-size: 16px;
+                    }
+                    .pos-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                        gap: 20px;
+                        margin-top: 20px;
+                    }
+                    .pos-card {
+                        background: #f8f9fa;
+                        border: 2px solid #e9ecef;
+                        border-radius: 12px;
+                        padding: 24px;
+                        text-align: center;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-decoration: none;
+                        color: #333;
+                    }
+                    .pos-card:hover {
+                        background: #667eea;
+                        border-color: #667eea;
+                        color: white;
+                        transform: translateY(-4px);
+                        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+                    }
+                    .pos-card i {
+                        font-size: 48px;
+                        margin-bottom: 12px;
+                        display: block;
+                    }
+                    .pos-card h3 {
+                        margin: 0;
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+                    .no-pos {
+                        text-align: center;
+                        padding: 40px;
+                        color: #999;
+                    }
+                    .no-pos i {
+                        font-size: 64px;
+                        margin-bottom: 20px;
+                        display: block;
+                    }
+                    .logout-btn {
+                        position: absolute;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255,255,255,0.2);
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        text-decoration: none;
+                        font-size: 14px;
+                    }
+                    .logout-btn:hover {
+                        background: rgba(255,255,255,0.3);
+                    }
+                </style>
+            </head>
+            <body>
+                <a href="/web/session/logout" class="logout-btn">
+                    <i class="fa fa-sign-out"></i> Cerrar sesión
+                </a>
+                <div class="container">
+                    <h1>
+                        <i class="fa fa-shopping-cart"></i>
+                        Seleccionar Punto de Venta
+                    </h1>
+                    <p class="subtitle">
+                        Hola <t t-esc="user.name"/>, selecciona el TPV donde quieres trabajar
+                    </p>
+                    
+                    <t t-if="pos_configs">
+                        <div class="pos-grid">
+                            <t t-foreach="pos_configs" t-as="pos">
+                                <a t-attf-href="/pos/cashier/open/#{pos.id}" class="pos-card">
+                                    <i class="fa fa-desktop"></i>
+                                    <h3><t t-esc="pos.name"/></h3>
+                                </a>
+                            </t>
+                        </div>
+                    </t>
+                    
+                    <t t-if="not pos_configs">
+                        <div class="no-pos">
+                            <i class="fa fa-exclamation-circle"></i>
+                            <h2>No hay TPVs disponibles</h2>
+                            <p>No tienes acceso a ningún punto de venta. Contacta al administrador.</p>
+                        </div>
+                    </t>
+                </div>
+            </body>
+        </html>
+    </template>
+</odoo>

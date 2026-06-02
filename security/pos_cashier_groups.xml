@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Categoría del módulo -->
+        <record id="module_category_pos_cashier" model="ir.module.category">
+            <field name="name">TPV Cajero</field>
+            <field name="description">Permisos para cajeros restringidos del TPV.</field>
+            <field name="sequence">21</field>
+        </record>
+
+        <!-- Privilegio (nuevo en Odoo 19) -->
+        <record id="privilege_pos_cashier" model="res.groups.privilege">
+            <field name="name">TPV Cajero</field>
+            <field name="description">Permisos para cajeros restringidos del TPV.</field>
+            <field name="sequence">21</field>
+            <field name="category_id" ref="pos_cashier_only.module_category_pos_cashier"/>
+        </record>
+
+        <!-- Grupo de seguridad -->
+        <record id="group_pos_cashier_only" model="res.groups">
+            <field name="name">Cajero TPV (solo caja)</field>
+            <field name="privilege_id" ref="pos_cashier_only.privilege_pos_cashier"/>
+            <field name="implied_ids" eval="[
+                (4, ref('base.group_user')),
+                (4, ref('point_of_sale.group_pos_manager')),
+            ]"/>
+            <field name="comment">
+                Este grupo permite al cajero acceder únicamente al TPV.
+                El backend queda bloqueado por redirect en controller y
+                regla de ir.ui.menu que oculta todos los menús.
+            </field>
+        </record>
+    </data>
+</odoo>

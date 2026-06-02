@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_employee_cashier,hr.employee cashier,hr.model_hr_employee,pos_cashier_only.group_pos_cashier_only,1,0,0,0
+access_pos_session_cashier,pos.session.cashier,point_of_sale.model_pos_session,pos_cashier_only.group_pos_cashier_only,1,1,1,0
+access_pos_order_cashier,pos.order.cashier,point_of_sale.model_pos_order,pos_cashier_only.group_pos_cashier_only,1,1,1,0
+access_pos_order_line_cashier,pos.order.line.cashier,point_of_sale.model_pos_order_line,pos_cashier_only.group_pos_cashier_only,1,1,1,0
+access_pos_payment_cashier,pos.payment.cashier,point_of_sale.model_pos_payment,pos_cashier_only.group_pos_cashier_only,1,1,1,0
+access_pos_config_cashier_read,pos.config.cashier.read,point_of_sale.model_pos_config,pos_cashier_only.group_pos_cashier_only,1,0,0,0
+access_product_cashier_read,product.cashier.read,product.model_product_product,pos_cashier_only.group_pos_cashier_only,1,0,0,0
+access_product_tmpl_cashier_read,product.tmpl.cashier.read,product.model_product_template,pos_cashier_only.group_pos_cashier_only,1,0,0,0
+access_partner_cashier_read,res.partner.cashier.read,base.model_res_partner,pos_cashier_only.group_pos_cashier_only,1,1,1,0
+access_uom_cashier_read,uom.cashier.read,uom.model_uom_uom,pos_cashier_only.group_pos_cashier_only,1,0,0,0
+access_payment_method_cashier,pos.payment.method.cashier,point_of_sale.model_pos_payment_method,pos_cashier_only.group_pos_cashier_only,1,0,0,0
