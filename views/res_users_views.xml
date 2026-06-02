@@ -36,6 +36,34 @@ action = {
         </field>
     </record>
 
+    <!-- Server actions intermedios para botones de la vista tree.
+         Necesarios porque en Odoo 19 los botones type="object" en vistas
+         tree no manejan correctamente acciones ir.actions.client.
+         Con type="action" el ActionManager las procesa bien. -->
+    <record id="action_make_cashier_server" model="ir.actions.server">
+        <field name="name">Hacer Cajero TPV (server action)</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.action_make_cashier()
+else:
+    action = {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {'title': 'Error', 'message': 'No se seleccionaron usuarios', 'type': 'danger', 'sticky': False}}
+        </field>
+    </record>
+
+    <record id="action_remove_cashier_server" model="ir.actions.server">
+        <field name="name">Quitar Cajero TPV (server action)</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.action_remove_cashier()
+else:
+    action = {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {'title': 'Error', 'message': 'No se seleccionaron usuarios', 'type': 'danger', 'sticky': False}}
+        </field>
+    </record>
+
     <record id="view_cashier_form" model="ir.ui.view">
         <field name="name">res.users.cashier.form</field>
         <field name="model">res.users</field>
@@ -91,9 +119,9 @@ action = {
                 <field name="login"/>
                 <field name="email"/>
                 <field name="phone"/>
-                <button name="action_make_cashier" type="object" string="Hacer Cajero TPV" 
+                <button name="%(action_make_cashier_server)d" type="action" string="Hacer Cajero TPV" 
                         icon="fa-user-plus" invisible="is_cashier_only or is_admin"/>
-                <button name="action_remove_cashier" type="object" string="Quitar Cajero TPV" 
+                <button name="%(action_remove_cashier_server)d" type="action" string="Quitar Cajero TPV" 
                         icon="fa-user-times" invisible="not is_cashier_only"/>
             </list>
         </field>

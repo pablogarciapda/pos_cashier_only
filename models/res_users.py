@@ -118,14 +118,7 @@ class ResUsers(models.Model):
         self._update_cashier_home_action()
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Cajeros TPV actualizados',
-                'message': f'{len(self)} usuario(s) ahora son cajeros TPV',
-                'type': 'success',
-                'sticky': False,
-                'next': {'tag': 'reload'},
-            }
+            'tag': 'reload',
         }
 
     def action_remove_cashier(self):
@@ -138,14 +131,7 @@ class ResUsers(models.Model):
         self._update_cashier_home_action()
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Cajeros TPV actualizados',
-                'message': f'{len(self)} usuario(s) ya no son cajeros TPV',
-                'type': 'info',
-                'sticky': False,
-                'next': {'tag': 'reload'},
-            }
+            'tag': 'reload',
         }
 
     def _create_employee_for_cashier(self):
