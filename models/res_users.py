@@ -141,7 +141,6 @@ class ResUsers(models.Model):
             'name': self.name,
             'user_id': self.id,
             'company_id': self.env.company.id,
-            'pin': self.login[-4:] if len(self.login) >= 4 else '0000',
         })
         return employee
 
