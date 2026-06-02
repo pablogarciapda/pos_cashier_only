@@ -114,7 +114,7 @@
                     <t t-if="pos_configs">
                         <div class="pos-grid">
                             <t t-foreach="pos_configs" t-as="pos">
-                                <a t-attf-href="/pos/cashier/open/#{pos.id}" class="pos-card">
+                                <a t-attf-href="/pos/ui/#{pos.id}?from_backend=True" class="pos-card">
                                     <i class="fa fa-desktop"></i>
                                     <h3><t t-esc="pos.name"/></h3>
                                 </a>
